@@ -1,46 +1,36 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-
-import glob
-import sys
-import random
+import os
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
-PORT_NUMBER = 5500
+PORT = int(os.environ.get('PORT', '5500'))
+FILE_PATH = os.environ.get('JSON_PATH', '/home/pi/data.json')
 
 
-def getTemp(path):
-    file = open(path)
-    text = file.read()
-    file.close()
-    return float(text.split("\n")[1].split("=")[1]) / 1000
+def read_file(path):
+    fil = open(path)
+    text = fil.read()
+    fil.close()
+    return text
 
 
-def getTemps():
-    sensors = glob.glob("/Users/marcus.bergman/src/stuff/com.athom.derol-test-a/assets/temps/28*/w1_slave")
-    # sensors = glob.glob("/sys/bus/w1/devices/28*/w1_slave")
-    return [getTemp(s) for s in sensors]
-
-
-class myHandler(BaseHTTPRequestHandler):
+class RestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        print getTemps()
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
         self.end_headers()
-        response = '{"value":%d}' % random.randint(32, 63)
-        print "  Response: '%s'" % response
-        self.wfile.write(response)
+        data = read_file(FILE_PATH)
+        print "  Response: '%s'" % data
+        self.wfile.write(data)
         return
 
 
 try:
-    # Create a web server and define the handler to manage the
-    # incoming request
-    server = HTTPServer(('', PORT_NUMBER), myHandler)
-    print 'Started httpserver on port ', PORT_NUMBER
+    # Create web server with custom handler to manage the incoming request
+    server = HTTPServer(('', PORT), RestHandler)
+    print 'Started http-server on port ', PORT
 
-    # Wait forever for incoming htto requests
+    # Wait forever for incoming http requests
     server.serve_forever()
 
 except KeyboardInterrupt:
